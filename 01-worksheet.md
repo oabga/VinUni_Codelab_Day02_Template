@@ -63,11 +63,11 @@ Hãy sử dụng **4 Lenses** dưới đây để quét qua hoạt động vận
 ### 📝 List bài toán của tôi:
 | # | Subsidiary (VinFast/Xanh SM...) | Lens | Mô tả ngắn bài toán |
 |---|----------------------------------|------|---------------------|
-| 1 | | | |
-| 2 | | | |
-| 3 | | | |
-| 4 | | | |
-| 5 | | | |
+| 1 | Xanh SM | Tốn thời gian | Dispatcher xử lý sự cố hết pin thực địa: tra GPS, tìm trụ sạc trống đúng cổng, soạn tin chỉ đường — ~12–15 phút/lượt. |
+| 2 | VinFast | Lặp lại | Kế toán so khớp tay phiên sạc roaming đối tác với hóa đơn tuần (lệch kWh / mã trụ / giờ) trên Excel. |
+| 3 | Vinhomes | AI-upgrade | CSKH BQL soạn phản hồi khiếu nại cư dân trên App (mất nước, ồn, phí); SLA 12h nhưng hay trễ, câu trả lời rập khuôn. |
+| 4 | Vinmec | Pain từ người khác | Bác sĩ viết tóm tắt xuất viện 20–30 phút/ca từ EMR + xét nghiệm rời; phàn nàn vì cắt giờ khám. |
+| 5 | Vinpearl | Lặp lại | Lễ tân đọc email đặt phòng đoàn (Việt/Anh lẫn), copy sang PMS kiểm quỹ rồi draft thư xác nhận — 20–40 phút/email. |
 
 ---
 
@@ -75,26 +75,46 @@ Hãy sử dụng **4 Lenses** dưới đây để quét qua hoạt động vận
 
 Chọn **top 3 bài toán** từ danh sách trên và hoàn thiện **3 Quick Problem Cards** dưới đây (10 phút/card).
 
+Bản đầy đủ (3 cards) nằm ở file nộp [01-problem-scan.md](01-problem-scan.md). Tóm tắt:
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│ QUICK PROBLEM CARD #___                                     │
-│                                                             │
-│ Bài toán (1 câu): ________________________________________  │
-│ Công ty thành viên: [ ] VinFast  [ ] Xanh SM  [ ] Vinhomes  │
-│                     [ ] Vinmec   [ ] Khác (Ghi rõ)________  │
-│                                                             │
-│ Ai đang đau (Actor)? ______________________________________ │
-│                                                             │
-│ Workflow thủ công hiện tại (3-5 bước):                      │
-│   1. ___ ──> 2. ___ ──> 3. ___ ──> 4. ___                   │
-│                                                             │
-│ Bước nào tốn thời gian/lỗi nhất? ___ (⏱ ___ phút/lượt)      │
-│ AI có thể nhảy vào hỗ trợ ở bước nào? _____________________ │
-│                                                             │
-│ Đo thành công bằng gì (Metric có số)? ______________________ │
-│   VD: "Giảm thời gian soạn phản hồi từ 10 min ──> under 2 min"│
-│                                                             │
-│ Quick Architecture: [ ] No AI  [ ] Rule  [ ] LLM  [ ] Agent │
+│ QUICK PROBLEM CARD #1 — Xanh SM sự cố hết pin               │
+│ Bài toán: Tài xế báo hết pin; dispatcher tìm trụ + soạn tin │
+│ Công ty: [x] Xanh SM                                        │
+│ Actor: Dispatcher (quá tải), tài xế (chờ, mất cuốc)         │
+│ Workflow: gọi báo → tra GPS → lọc trụ trống → soạn SMS      │
+│           → gọi cứu hộ nếu pin cực thấp                     │
+│ Bottleneck: Bước 3–4 (⏱ ~12 phút/lượt)                      │
+│ AI vào: Bước 3–4 (draft tin + cờ cứu hộ khi pin < 5%)       │
+│ Metric: 15 phút ──> dưới 3 phút; đúng trụ >= 98%            │
+│ Architecture: [x] LLM  (+ rule cứng pin < 5% / > 5km)       │
+└─────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────┐
+│ QUICK PROBLEM CARD #2 — Vinhomes khiếu nại cư dân           │
+│ Bài toán: CSKH soạn tay phản hồi ticket App, chậm + generic │
+│ Công ty: [x] Vinhomes                                       │
+│ Actor: CSKH BQL, cư dân chờ SLA                             │
+│ Workflow: ticket → đọc/đoán loại → forward tòa → soạn mẫu   │
+│           → supervisor duyệt ticket phí                     │
+│ Bottleneck: Bước 2+4 (⏱ ~10 phút/ticket; route sai ~15%)    │
+│ AI vào: phân loại + draft; HITL bắt buộc với ticket phí     │
+│ Metric: 10 phút ──> dưới 2 phút; đúng loại+tòa >= 90%       │
+│ Architecture: [x] LLM  (+ rule router mã căn/tòa)           │
+└─────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────┐
+│ QUICK PROBLEM CARD #3 — VinFast đối soát sạc roaming        │
+│ Bài toán: Kế toán so khớp tay phiên sạc vs hóa đơn tuần     │
+│ Công ty: [x] VinFast                                        │
+│ Actor: Kế toán dịch vụ sạc; đối tác chờ thanh toán          │
+│ Workflow: export CSV → nhận hóa đơn → Vlookup → flag lệch   │
+│           → email đối tác                                   │
+│ Bottleneck: Bước 3–4 (⏱ ~8 phút/50 dòng; cả tuần ~12 giờ)   │
+│ AI vào: không cần LLM để join ID; LLM chỉ nếu PDF scan xấu  │
+│ Metric: 12 giờ/tuần ──> dưới 2 giờ; bắt 100% lệch > 0.5 kWh │
+│ Architecture: [x] Rule                                      │
 └─────────────────────────────────────────────────────────────┘
 ```
 
