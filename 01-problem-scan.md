@@ -3,7 +3,7 @@
 ---
 
 ## 🏛️ Bối cảnh: Vin Smart Future (Vingroup)
-**Họ và tên học viên:** Lê Gia Bảo
+**Họ và tên học viên:** Lê Gia Bảo  
 **Mảng ưu tiên:** Vinhomes (Ban Quản Lý Đô Thị) / Vingroup Ecosystem  
 
 ---

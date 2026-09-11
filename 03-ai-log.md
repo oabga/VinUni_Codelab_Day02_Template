@@ -1,6 +1,6 @@
 # 📄 File 03 — AI Log & Reflection (Nhật Ký Tương Tác AI)
 
-> **Học viên:** Nguyễn Văn A  
+> **Học viên:** Lê Gia Bảo  
 > **Dự án:** AI Product Scoping (Vin Smart Future — Vinhomes & Ecosystem)  
 
 ---
