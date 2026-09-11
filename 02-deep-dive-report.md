@@ -95,3 +95,17 @@ The AI **must NOT**:
               ▼           ▼
            assign     manual review
 ```
+
+## 9. Final Decision — GO for Limited Prototype
+
+BatteryGuard AI should proceed as a limited internal prototype.
+
+The problem has clear inputs and measurable success criteria.
+Safety-critical decisions can be separated from language-model
+generation using deterministic rules.
+
+The LLM acts only as a recommendation and explanation layer,
+while the human dispatcher retains final operational authority.
+
+Production deployment should only be considered after evaluation
+using historical and pilot operational data.
