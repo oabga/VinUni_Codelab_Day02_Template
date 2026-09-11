@@ -1,106 +1,97 @@
-### 1. Actor / Operator
+# Deep-Dive Report
 
-The primary operator is a Xanh SM dispatcher responsible for
-assigning available electric vehicles to incoming trips.
+## 1. Actor / Operator
 
-### 2. Current Workflow
+The primary operator is a **Xanh SM dispatcher** responsible for assigning available electric vehicles to incoming trips.
 
-When a trip request arrives, the dispatcher identifies available
-vehicles, checks their battery status, evaluates the distance to
-the pickup point and the expected trip distance, and manually
-determines whether a vehicle can safely accept the trip.
+## 2. Current Workflow
 
-### 3. Bottleneck
+When a trip request arrives, the dispatcher identifies available vehicles, checks their battery status, evaluates the distance to the pickup point and the expected trip distance, and manually determines whether a vehicle can safely accept the trip.
 
-The main bottleneck is combining multiple operational variables
-to assess battery risk before vehicle assignment.
+## 3. Bottleneck
 
-The dispatcher must interpret battery percentage, pickup distance,
-trip distance, and charging availability before making a decision.
+The main bottleneck is combining multiple operational variables to assess battery risk before vehicle assignment.
 
-### 4. Business Impact
+The dispatcher must interpret battery percentage, pickup distance, trip distance, and charging availability before making a decision.
 
-Slow or inconsistent battery-risk assessment may increase dispatcher
-workload and could result in assigning vehicles with insufficient
-battery reserves.
+## 4. Business Impact
 
-Potential consequences include driver downtime, trip reassignment,
-customer waiting time, and emergency charging incidents.
+Slow or inconsistent battery-risk assessment may increase dispatcher workload and could result in assigning vehicles with insufficient battery reserves.
 
-### 5. Success Metrics
+Potential consequences include driver downtime, trip reassignment, customer waiting time, and emergency charging incidents.
+
+## 5. Success Metrics
 
 Prototype targets:
 
-1. Reduce battery-risk decision-support time from an estimated
-   2–4 minutes to below 30 seconds.
+1. Reduce battery-risk decision-support time from an estimated 2–4 minutes to below 30 seconds.
+2. Achieve 100% compliance with the critical-battery boundary in adversarial test cases.
+3. Prevent autonomous assignment: 100% of recommendations require dispatcher approval.
 
-2. Achieve 100% compliance with the critical-battery boundary
-   in adversarial test cases.
+## 6. Operational Boundary
 
-3. Prevent autonomous assignment:
-   100% of recommendations require dispatcher approval.
-   
-### 6. Operational Boundary
-
-The AI may:
+The AI **may**:
 
 - analyse provided vehicle and trip information;
 - classify battery risk;
 - draft an explanation and recommended action.
 
-The AI must NOT:
+The AI **must NOT**:
 
 - directly assign a vehicle to a trip;
 - invent missing battery, GPS, distance, or station data;
 - override deterministic critical-battery safety rules;
 - send operational instructions without human approval.
 
-If battery is below 5%, the vehicle must not be assigned to
-a new trip.
+## 7. Safety Rules & Constraints
 
-If safe charging cannot be reached within the defined safety
-boundary, the system must recommend dispatching a mobile charger.
+- If the battery is below **5%**, the vehicle must not be assigned to a new trip.
+- If safe charging cannot be reached within the defined safety boundary, the system must recommend dispatching a mobile charger.
+- The magnitude of these effects requires validation using real operational logs.
 
-The magnitude of these effects requires validation using real
-operational logs.
+## 8. Decision Flow Diagram
 
-Incoming trip
-      │
-      ▼
-Automatically retrieve:
-
-- Battery
-- GPS
-- Pickup distance
-- Trip distance
-      │
-      ▼
- ┌────────────────┐
- │ Battery < 5% ? │
- └───────┬────────┘
-      YES│          NO
-         │
-         ▼
- DO_NOT_ASSIGN      Battery-risk
-         │          calculation
-         │              │
-         ▼              ▼
-dispatch_mobile_    Risk category
-charger                  │
-         │               │
-         └───────┬───────┘
-                 ▼
-              🔵 LLM
+```text
+                  Incoming trip
+                       │
+                       ▼
+        Automatically retrieve:
+        ┌─────────────────────────────┐
+        │ • Battery                   │
+        │ • GPS                       │
+        │ • Pickup distance           │
+        │ • Trip distance             │
+        └──────────────┬──────────────┘
+                       │
+                       ▼
+              ┌─────────────────┐
+              │ Battery < 5% ?  │
+              └───────┬─────────┘
+              YES     │     NO
+        ┌─────────────┴─────────────┐
+        │                           │
+        ▼                           ▼
+  DO_NOT_ASSIGN            Battery-risk
+        │                  calculation
+        │                           │
+        ▼                           ▼
+  dispatch_mobile_            Risk category
+  charger                           │
+        │                           │
+        └────────────┬──────────────┘
+                     │
+                     ▼
+                 🔵 LLM
         Explain recommendation
-                 │
-                 ▼
-           [DRAFT_ONLY]
-                 │
-                 ▼
-         🟢 Human Dispatcher
-              /      \
-          approve    reject
-             │         │
-             ▼         ▼
-           assign    manual
-                     review
+                     │
+                     ▼
+              [DRAFT_ONLY]
+                     │
+                     ▼
+          🟢 Human Dispatcher
+               /        \
+          approve      reject
+              │           │
+              ▼           ▼
+           assign     manual review
+```
