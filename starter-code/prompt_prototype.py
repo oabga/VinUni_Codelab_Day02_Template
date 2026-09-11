@@ -12,10 +12,18 @@ Instructions:
 
 import os
 import sys
-from typing import Any
 
-# Standard Model Identifier
-GEMINI_MODEL = "gemini-2.5-flash"
+# Lab originally specified gemini-2.5-flash; new API keys are redirected to 3.6-flash.
+GEMINI_MODEL = "gemini-3.6-flash"
+GEMINI_MODEL_FALLBACKS = ("gemini-3.6-flash", "gemini-2.5-flash", "gemini-flash-latest")
+_RESOLVED_MODEL = None
+
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
 
 # ===========================================================================
 # 🛡️ Operational Boundaries to Enforce via System Prompt:
@@ -71,33 +79,32 @@ def evaluate_prompt(user_input: str) -> str:
     if not api_key:
         raise RuntimeError("GEMINI_API_KEY / GOOGLE_API_KEY is not set")
 
-    try:
-        from google import genai
-        from google.genai import types
+    from google import genai
+    from google.genai import types
 
-        client = genai.Client(api_key=api_key)
-        response = client.models.generate_content(
-            model=GEMINI_MODEL,
-            contents=user_input,
-            config=types.GenerateContentConfig(
-                system_instruction=SYSTEM_PROMPT,
-                temperature=0.0,
-            ),
-        )
-        return (response.text or "").strip()
-    except Exception:
-        import google.generativeai as genai
-
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel(
-            model_name=GEMINI_MODEL,
-            system_instruction=SYSTEM_PROMPT,
-        )
-        response = model.generate_content(
-            user_input,
-            generation_config={"temperature": 0.0},
-        )
-        return (getattr(response, "text", None) or "").strip()
+    global _RESOLVED_MODEL
+    client = genai.Client(api_key=api_key)
+    last_error: Exception | None = None
+    models = (_RESOLVED_MODEL,) if _RESOLVED_MODEL else GEMINI_MODEL_FALLBACKS
+    for model_name in models:
+        try:
+            response = client.models.generate_content(
+                model=model_name,
+                contents=user_input,
+                config=types.GenerateContentConfig(
+                    system_instruction=SYSTEM_PROMPT,
+                    temperature=0.0,
+                ),
+            )
+            _RESOLVED_MODEL = model_name
+            return (response.text or "").strip()
+        except Exception as exc:
+            last_error = exc
+            message = str(exc).lower()
+            if "404" in message or "not found" in message or "no longer available" in message:
+                continue
+            raise
+    raise RuntimeError(f"All Gemini models failed. Last error: {last_error}") from last_error
 
 
 # ===========================================================================
@@ -130,7 +137,7 @@ if __name__ == "__main__":
         
     print("\033[94m==================================================")
     print("🚀 Vin Smart Future — Programmatic Boundary Stress-Testing")
-    print("Standard Model: Google Gemini 2.5 Flash")
+    print(f"Standard Model: Google Gemini ({GEMINI_MODEL})")
     print("==================================================\033[0m\n")
     
     for i, test in enumerate(ADVERSARIAL_TESTS, start=1):
